@@ -5,9 +5,11 @@
             [goog.object :as gobj]
             [cljs.core.async :refer [<!]]
             [cljs.core.async.impl.protocols :refer [ReadPort]]
+            [cljs.nodejs :refer [require]]
             [clojure.string :as str]
             [clojure.walk :as w]))
 
+(def process (cljs.nodejs/require "process"))
 
 (defprotocol Codec
   (serialize [this data])
@@ -51,6 +53,15 @@
      :body            (get r "body")  ; TODO: should use codec or smth probably to handle request body type
   }))
 
+(defn exception-handler
+  [context]
+  (fn [err]
+    ; FIXME: does not work properly
+    ; Programming error?
+    ; Or Azure feature?
+    ; Does not log, but sometimes test app prints after exception callee
+    (.log context "ERROR: unhandled exception")
+    (.done context err nil)))
 
 (defn ring->azure [context codec]
   (fn [raw-resp]
@@ -65,6 +76,10 @@
   ([handler codec]
    (fn [context req]
      (try
+       (.log context "foo")
+       (.on process "uncaughtException" (fn [e] (.log context "ERROR!: ") (.log context e)  (.done context e nil)))
+       (.log context "bar")
+
        (let [ok     (ring->azure context codec)
              logfn (.-log context)
              result (handler (into (azure->ring req) {:log logfn}))]
@@ -72,7 +87,9 @@
           (.log context (str "request: " (js->clj req)))
           (cond
             (satisfies? ReadPort result) (do (.log context "Result is channel, content pending...")
-                                           (go (ok (<! result))))
+                                           (go (try 
+                                                 (ok (<! result)) 
+                                                 (catch :default e (.done context e nil)))))
             (string? result)             (ok {:body result})
             :else                        (ok result)))
        (catch :default e (.done context e nil))))))
