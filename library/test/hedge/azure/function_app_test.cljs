@@ -67,13 +67,13 @@
 
 (deftest azure-error-handling
   (testing-azure-wrapper "Should catch exceptions"
-                         (fn [x] (go (throw (js/Error. "Oops!"))))
-                         (fn [x] (is (= nil x)) (println (str "LOGXX :: " x)))))
+                         (fn [x] (go (throw (js/Error. "Oops1!"))))
+                         (fn [x] (is (= nil x)) (println (str "LOG1 :: " x)))))
 
 (deftest azure-error-handling2
   (testing-azure-err-wrapper "Should catch exceptions"
-                             (fn [x] (go (throw (js/Error. "Oops!"))))
-                             (fn [x] (is (= (type x) js/Error)) (println (str "LOGYY :: " x)))))
+                             (fn [x] (go (throw (js/Error. "Oops2!"))))
+                             (fn [x] (is (= (type x) js/Error)) (println (str "LOG2 :: " x)))))
 
 ; (deftest azure-function-wrapper-test-calls-done-after
 ;   (testing-azure-wrapper "should call context done with the result given by the handler"

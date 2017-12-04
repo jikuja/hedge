@@ -77,7 +77,14 @@
    (fn [context req]
      (try
        (.log context "foo")
-       (.on process "uncaughtException" (fn [e] (.log context "ERROR!: ") (.log context e)  (.done context e nil)))
+       (.on process "uncaughtException" (fn [e] 
+                                          ; Do logging
+                                          (.log context "ERROR!: ") 
+                                          (.log context e)
+                                          ; Hint azure that handler errored
+                                          (.done context e nil)
+                                          ; Kill the process. Azure will send stderr to /dev/null
+                                          (throw (js/Error. e))))
        (.log context "bar")
 
        (let [ok     (ring->azure context codec)
