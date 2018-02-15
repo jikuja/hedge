@@ -13,8 +13,12 @@
                                      spy get-env log-env]]
             [oops.core :as oops]
             [hedge.azure.timbre-appender :refer [timbre-appender]]
-            [hedge.common :refer [outputs->atoms]]))
+            [hedge.common :refer [outputs->atoms]]
+            [oops.core :refer [oget oset! ocall oapply ocall! oapply!
+                               oget+ oset!+ ocall+ oapply+ ocall!+ oapply!+]]
+            [cljs.nodejs :refer [require]]))
 
+(def process (cljs.nodejs/require "process"))
 
 (defprotocol Codec
   (serialize [this data])
@@ -132,6 +136,10 @@
   [handler & {:keys [inputs outputs]}]
     (fn [context req]
       (try
+        (ocall process "on" "uncaughtException" (fn [e] (.log context "ERROR!: ") 
+                                                 (.log context e)
+                                                 (.done context e nil)
+                                                 )) ; should we also kill edge process here?
         (timbre/merge-config! {:appenders {:console nil}})
         (timbre/merge-config! {:appenders {:azure (timbre-appender (.-log context))}})
         (trace (str "request: " (js->clj req)))

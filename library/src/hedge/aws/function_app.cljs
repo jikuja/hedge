@@ -12,7 +12,10 @@
                                logf tracef debugf infof warnf errorf fatalf reportf
                                spy get-env log-env)]
             [oops.core :refer [oget oset! ocall oapply ocall! oapply!
-                               oget+ oset!+ ocall+ oapply+ ocall!+ oapply!+]]))
+                               oget+ oset!+ ocall+ oapply+ ocall!+ oapply!+]]
+            [cljs.nodejs :refer [require]]))
+
+(def process (cljs.nodejs/require "process"))
 
 (defprotocol Codec
   (serialize [this data])
@@ -88,6 +91,10 @@
   ([handler codec]
    (fn [event context callback]
      (try
+       (ocall process "on" "uncaughtException" (fn [e] (println "ERROR!: ") 
+                                                (println e)
+                                                (callback e nil)))
+                                                 ; should we also kill edge process here?
        (trace (str "request: " (js->clj event)))
        (let [ok     (ring->lambda callback codec)
              result (handler (lambda->ring event))]
