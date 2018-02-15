@@ -95,9 +95,10 @@
 (fn [raw-resp]
   (trace (str "result: " raw-resp))
   (outputs->bindings context outputs) ; persist outputs
-  (if (string? raw-resp)
-    (.done context nil (clj->js {:body raw-resp}))
-    (.done context nil (clj->js raw-resp)))))
+  (cond 
+    (string? raw-resp) (.done context nil (clj->js {:body raw-resp}))
+    (instance? js/Error raw-resp) (.done context (clj->js raw-resp) nil)
+    :else (.done context nil (clj->js raw-resp)))))
 
 (defn azure->timer
   "Converts incoming timer trigger to Hedge timer handler"

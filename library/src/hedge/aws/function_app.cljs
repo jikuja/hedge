@@ -70,17 +70,19 @@
 (defn ring->lambda [callback codec]
   (fn [raw-resp]
     (trace (str "result: " raw-resp))
-    (let [response
-          (if (string? raw-resp)
-            {:statusCode 200 :body raw-resp}
-            (let [[base64 body] (ringbody->awsbody (get raw-resp :body))
-                  headers (get raw-resp :headers {})
-                  status (get raw-resp :status 200)]
-              {:statusCode status
-               :headers headers
-               :body body
-               :isBase64Encoded base64}))]
-      (callback nil (clj->js response)))))
+    (if (instance? js/Error raw-resp)
+      (callback raw-resp nil)
+      (let [response
+            (if (string? raw-resp)
+              {:statusCode 200 :body raw-resp}
+              (let [[base64 body] (ringbody->awsbody (get raw-resp :body))
+                    headers (get raw-resp :headers {})
+                    status (get raw-resp :status 200)]
+                {:statusCode status
+                 :headers headers
+                 :body body
+                 :isBase64Encoded base64}))]
+        (callback nil (clj->js response))))))
 
 (defn lambda-apigw-function-wrapper
   ([handler]
